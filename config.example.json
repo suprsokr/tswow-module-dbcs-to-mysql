@@ -1,0 +1,18 @@
+{
+  "mysql": {
+    "host": "192.168.86.225",
+    "port": 3306,
+    "user": "tswow",
+    "password": "password"
+  },
+  "module": "default",
+  "tswowInstallPath": "c:\\wowdev\\tswow-install",
+  "tswowSourcePath": "c:\\wowdev\\tswow",
+  "_comments": {
+    "mysql": "MySQL connection settings (user needs CREATE, DROP, INSERT, SELECT permissions)",
+    "module": "Module name to export from (any module works - just the name, e.g. 'default', 'my-module', etc.)",
+    "tswowInstallPath": "Path to your TSWoW installation (contains modules/ folder)",
+    "tswowSourcePath": "Path to the tswow source repository (for reading DBC schemas from tswow-scripts)"
+  }
+}
+
