@@ -70,7 +70,6 @@ node export-module-dbc.js --source dbc_source
 
 # Export from ANY module (just use the module name)
 node export-module-dbc.js --module my-custom-module
-node export-module-dbc.js --module cow-level
 
 # Export just one DBC for testing
 node export-module-dbc.js --dbc Spell --limit 100

@@ -165,7 +165,7 @@ function createTableSchema(tableName, schema) {
             columns.push(`${colName} INT PRIMARY KEY`);
         } else if (field.isArray) {
             if (field.type === 'string' && field.count > 1) {
-                columns.push(`${colName} VARCHAR(255)`);
+                columns.push(`${colName} TEXT`);
             } else {
                 for (let i = 0; i < field.count; i++) {
                     const arrayColName = sanitizeColumnName(`${field.name}_${i + 1}`);
@@ -181,7 +181,7 @@ function createTableSchema(tableName, schema) {
         } else if (field.type === 'float') {
             columns.push(`${colName} FLOAT`);
         } else if (field.type === 'string') {
-            columns.push(`${colName} VARCHAR(255)`);
+            columns.push(`${colName} TEXT`);
         } else if (field.type === 'ulong') {
             columns.push(`${colName} BIGINT UNSIGNED`);
         } else if (field.type === 'byte') {
@@ -238,7 +238,11 @@ async function exportDbc(connection, dbcName, schema, dbcFolder, database) {
                     inserted++;
                 } catch (err) {
                     if (err.code !== 'ER_DUP_ENTRY') {
-                        console.error(`[${database}.${dbcName}] Insert error:`, err.message);
+                        console.error(`[${database}.${dbcName}] Insert error for record ${record.ID}:`, err.code, err.message, err.sqlMessage || '');
+                        // Log the problematic record for debugging
+                        if (process.env.DEBUG_EXPORT) {
+                            console.error('Problematic record:', JSON.stringify(record).substring(0, 200));
+                        }
                     }
                 }
             }
