@@ -18,6 +18,7 @@ if (args.includes('--help') || args.includes('-h')) {
     console.log('  --module NAME    Module name (any module works - uses "module" from config.json if not specified)');
     console.log('  --source TYPE    DBC source: "dbc" or "dbc_source" (default: both)');
     console.log('  --dbc NAME       Export only this DBC file');
+    console.log('  --ids ID,ID,...  Export only specific entry IDs (comma-separated)');
     console.log('  --limit N        Limit number of records per DBC');
     console.log('  --dry-run        Show what would be done without doing it');
     console.log('  --help           Show this help');
@@ -26,6 +27,7 @@ if (args.includes('--help') || args.includes('-h')) {
     console.log('  node export-module-dbc.js');
     console.log('  node export-module-dbc.js --module default');
     console.log('  node export-module-dbc.js --module cow-level --source dbc');
+    console.log('  node export-module-dbc.js --dbc Spell --ids 80902,133,1449');
     console.log('  node export-module-dbc.js --module my-custom-module --dbc Spell');
     process.exit(0);
 }
@@ -45,6 +47,8 @@ const sourceType = args.indexOf('--source') !== -1 ? args[args.indexOf('--source
 const singleDbc = args.indexOf('--dbc') !== -1 ? args[args.indexOf('--dbc') + 1] : null;
 const limitIndex = args.indexOf('--limit');
 const limit = limitIndex !== -1 && args[limitIndex + 1] ? parseInt(args[limitIndex + 1]) : null;
+const idsIndex = args.indexOf('--ids');
+const filterIds = idsIndex !== -1 && args[idsIndex + 1] ? args[idsIndex + 1].split(',').map(id => parseInt(id.trim())) : null;
 const dryRun = args.includes('--dry-run');
 
 // Validate source type
@@ -194,7 +198,7 @@ function createTableSchema(tableName, schema) {
     return `CREATE TABLE IF NOT EXISTS ${tableName} (\n  ${columns.join(',\n  ')}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
 }
 
-async function exportDbc(connection, dbcName, schema, dbcFolder, database) {
+async function exportDbc(connection, dbcName, schema, dbcFolder, database, filterIds = null) {
     const dbcFilePath = path.join(dbcFolder, `${dbcName}.dbc`);
     
     if (!fs.existsSync(dbcFilePath)) {
@@ -204,8 +208,15 @@ async function exportDbc(connection, dbcName, schema, dbcFolder, database) {
     console.log(`\n[${database}.${dbcName}] Reading DBC file...`);
     
     try {
-        const data = readDbc(dbcFilePath, schema);
+        let data = readDbc(dbcFilePath, schema);
         const tableName = sanitizeTableName(dbcName);
+        
+        // Filter by IDs if specified
+        if (filterIds && filterIds.length > 0) {
+            const originalCount = data.records.length;
+            data.records = data.records.filter(record => filterIds.includes(record.ID));
+            console.log(`[${database}.${dbcName}] Filtered ${originalCount} records to ${data.records.length} matching IDs: ${filterIds.join(', ')}`);
+        }
         
         console.log(`[${database}.${dbcName}] Records: ${data.metadata.recordCount}, Fields: ${schema.fields.length}`);
         console.log(`[${database}.${dbcName}] Exporting ${data.records.length} records to table: ${tableName}`);
@@ -305,6 +316,7 @@ async function main() {
 
     console.log(`DBCs to process: ${dbcFiles.length}`);
     console.log(`Sources: ${sources.map(s => s.name).join(', ')}`);
+    if (filterIds) console.log(`Filter IDs: ${filterIds.join(', ')}`);
     if (limit) console.log(`Record limit: ${limit} per DBC`);
 
     // Connect to database
@@ -338,7 +350,7 @@ async function main() {
 
         for (const dbcName of dbcFiles) {
             const schema = schemas[dbcName];
-            const result = await exportDbc(connection, dbcName, schema, source.folder, source.database);
+            const result = await exportDbc(connection, dbcName, schema, source.folder, source.database, filterIds);
             allResults.push(result);
         }
     }
